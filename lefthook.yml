@@ -9,12 +9,15 @@ pre-commit:
     mado:
       glob: "*.md"
       run: mado check {staged_files}
+    shellcheck:
+      glob: "{*.sh,bin/*}"
+      run: shellcheck {staged_files}
     trailing-whitespace:
-      glob: "*.{yml,yaml,md,sh}"
+      glob: "*.{yml,yaml,md,sh,toml,json}"
       run: perl -i -pe 's/[ \t]+$//' {staged_files}
       stage_fixed: true
     end-of-file-fixer:
-      glob: "*.{yml,yaml,md,sh}"
+      glob: "*.{yml,yaml,md,sh,toml,json}"
       run: |
         for f in {staged_files}; do
           if [ -s "$f" ] && [ -n "$(tail -c 1 "$f")" ]; then
@@ -27,3 +30,8 @@ commit-msg:
   commands:
     committed:
       run: committed --commit-file {1}
+
+pre-push:
+  commands:
+    full-check:
+      run: lefthook run pre-commit --all-files

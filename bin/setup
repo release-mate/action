@@ -72,6 +72,14 @@ install_linux_gitleaks() {
   err "gitleaks not found. Install via your package manager or https://github.com/gitleaks/gitleaks/releases"
 }
 
+install_linux_shellcheck() {
+  if have shellcheck; then
+    log "shellcheck already installed"
+    return
+  fi
+  err "shellcheck not found. Install via your package manager (apt-get install shellcheck, dnf install ShellCheck, etc)."
+}
+
 install_mado() {
   if have mado; then
     log "mado already installed"
@@ -199,11 +207,13 @@ main() {
       install_brew_pkg lefthook
       install_brew_pkg actionlint
       install_brew_pkg gitleaks
+      install_brew_pkg shellcheck
       ;;
     linux)
       install_linux_lefthook
       install_linux_actionlint
       install_linux_gitleaks
+      install_linux_shellcheck
       ;;
   esac
 
