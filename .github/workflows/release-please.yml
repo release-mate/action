@@ -1,0 +1,87 @@
+name: release-please
+
+on:
+  workflow_call:
+    inputs:
+      config-file:
+        description: Path to the release-please configuration file.
+        type: string
+        required: false
+        default: release-please-config.json
+      manifest-file:
+        description: Path to the release-please manifest file.
+        type: string
+        required: false
+        default: .release-please-manifest.json
+      target-branch:
+        description: Branch release-please should track. Defaults to the branch the workflow runs on.
+        type: string
+        required: false
+        default: ${{ github.ref_name }}
+      skip-github-release:
+        description: If true, only open the release pull request and skip cutting the GitHub Release.
+        type: boolean
+        required: false
+        default: false
+      runs-on:
+        description: Runner label for the release job.
+        type: string
+        required: false
+        default: ubuntu-latest
+    secrets:
+      app-id:
+        description: GitHub App ID for Release Baton.
+        required: true
+      app-private-key:
+        description: PEM-encoded private key for the Release Baton GitHub App.
+        required: true
+    outputs:
+      release_created:
+        description: Whether release-please cut a release in this run.
+        value: ${{ jobs.release-please.outputs.release_created }}
+      releases_created:
+        description: JSON map of paths to release_created flags (manifest mode).
+        value: ${{ jobs.release-please.outputs.releases_created }}
+      paths_released:
+        description: JSON array of paths that were released in this run.
+        value: ${{ jobs.release-please.outputs.paths_released }}
+      tag_name:
+        description: Tag name release-please cut, when a release was created.
+        value: ${{ jobs.release-please.outputs.tag_name }}
+      pr:
+        description: JSON describing the release pull request, when one was opened or updated.
+        value: ${{ jobs.release-please.outputs.pr }}
+
+permissions: {}
+
+jobs:
+  release-please:
+    name: release-please
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: read
+    outputs:
+      release_created: ${{ steps.release-please.outputs.release_created }}
+      releases_created: ${{ steps.release-please.outputs.releases_created }}
+      paths_released: ${{ steps.release-please.outputs.paths_released }}
+      tag_name: ${{ steps.release-please.outputs.tag_name }}
+      pr: ${{ steps.release-please.outputs.pr }}
+    steps:
+      - name: Mint installation token
+        id: token
+        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1
+        with:
+          app-id: ${{ secrets.app-id }}
+          private-key: ${{ secrets.app-private-key }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+
+      - name: Run release-please
+        id: release-please
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.token.outputs.token }}
+          config-file: ${{ inputs.config-file }}
+          manifest-file: ${{ inputs.manifest-file }}
+          target-branch: ${{ inputs.target-branch }}
+          skip-github-release: ${{ inputs.skip-github-release }}
