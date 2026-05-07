@@ -2,3 +2,16 @@ style = "conventional"
 subject_length = 72
 line_length = 72
 subject_capitalized = true
+allowed_types = [
+  "build",
+  "chore",
+  "ci",
+  "docs",
+  "feat",
+  "fix",
+  "perf",
+  "refactor",
+  "revert",
+  "style",
+  "test",
+]
