@@ -58,8 +58,7 @@ jobs:
   release-please:
     name: release-please
     runs-on: ${{ inputs.runs-on }}
-    permissions:
-      contents: read
+    permissions: {}
     outputs:
       release_created: ${{ steps.release-please.outputs.release_created }}
       releases_created: ${{ steps.release-please.outputs.releases_created }}
