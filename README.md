@@ -66,10 +66,10 @@ The app subscribes to no events and exposes no webhooks.
    tooling repository, leave the callback URL blank, disable webhooks, and
    grant the permissions listed above.
 2. Generate a private key and download the `.pem` file.
-3. Note the App ID.
+3. Note the Client ID (visible on the app's settings page).
 4. Install the app on the repositories that should release.
 5. Store the credentials as **organization secrets**:
-   - `RELEASE_BATON_APP_ID`
+   - `RELEASE_BATON_CLIENT_ID`
    - `RELEASE_BATON_PRIVATE_KEY`
 
 ### Per-repository setup
@@ -87,7 +87,7 @@ jobs:
   release:
     uses: your-org/release-tooling/.github/workflows/release-please.yml@v1
     secrets:
-      app-id: ${{ secrets.RELEASE_BATON_APP_ID }}
+      client-id: ${{ secrets.RELEASE_BATON_CLIENT_ID }}
       app-private-key: ${{ secrets.RELEASE_BATON_PRIVATE_KEY }}
 ```
 

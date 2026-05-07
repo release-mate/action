@@ -10,5 +10,5 @@ jobs:
   release:
     uses: ./.github/workflows/release-please.yml
     secrets:
-      app-id: ${{ secrets.RELEASE_BATON_APP_ID }}
+      client-id: ${{ secrets.RELEASE_BATON_CLIENT_ID }}
       app-private-key: ${{ secrets.RELEASE_BATON_PRIVATE_KEY }}
