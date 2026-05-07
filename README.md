@@ -123,6 +123,37 @@ unchanged.
 - Rotating the private key is one operation in organization settings; consumer
   repositories require no changes.
 
+The lifecycle of a single token:
+
+```mermaid
+sequenceDiagram
+    participant Push as Push to main
+    participant Caller as Caller workflow
+    participant App as Release Baton
+    participant API as GitHub API
+    participant RP as release-please
+
+    Push->>Caller: Trigger
+    Caller->>App: Sign JWT with private key
+    App->>API: Exchange JWT + install ID for token
+    API-->>App: Installation token (~1h, repo-scoped)
+    App-->>Caller: Token in step output (masked)
+    Caller->>RP: Run with token
+    RP->>API: Open release PR / cut release
+    Note over Caller,API: Job ends, token discarded
+```
+
+To report a security issue, see [SECURITY.md](SECURITY.md).
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `actions/create-github-app-token` step fails with 404 | App not installed on this repository | Install Release Baton on the repository in org settings, then re-run. |
+| API calls return 403 after the token mints successfully | Token's `repositories:` scope mismatches the caller repo name | Confirm the caller workflow runs in the repository the app is installed on. The token is scoped to one repo per run. |
+| Release PR opens but never tags a release | Commits since the last release are not Conventional Commits | Run `committed HEAD~..HEAD` locally; release-please ignores commits without recognised types. |
+| `permissions: {}` strips a permission you need | The default `GITHUB_TOKEN` is stripped, but you wanted to use it for an extra step | Add the permission to the specific job that needs it; the app token still mints under its own scopes. |
+
 ## Limitations
 
 - Release Baton runs inside GitHub Actions. If your release flow runs
