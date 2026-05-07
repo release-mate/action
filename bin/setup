@@ -104,8 +104,21 @@ install_committed() {
   install_committed_binary
 }
 
+sha256_of() {
+  if have shasum; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  elif have sha256sum; then
+    sha256sum "$1" | awk '{print $1}'
+  else
+    err "no sha256 utility (shasum or sha256sum) available"
+  fi
+}
+
 install_committed_binary() {
-  local os arch target bindir tmpdir asset_url
+  local os arch target bindir tmpdir asset_url digest expected_sha256 actual_sha256
+
+  have python3 || err "python3 required to verify committed download. Install python3, or run cargo install committed."
+
   bindir="${HOME}/.local/bin"
   mkdir -p "$bindir"
 
@@ -124,18 +137,38 @@ install_committed_binary() {
   target="${arch}-${os}"
 
   log "resolving committed release for ${target}"
-  asset_url="$(curl -fsSL https://api.github.com/repos/crate-ci/committed/releases/latest \
-    | grep -E '"browser_download_url"' \
-    | grep -E "${target}.*\\.tar\\.gz\"" \
-    | head -1 \
-    | cut -d'"' -f4)"
+  { read -r asset_url; read -r digest; } < <(
+    curl -fsSL https://api.github.com/repos/crate-ci/committed/releases/latest \
+      | python3 -c '
+import json, sys
+target = sys.argv[1]
+data = json.load(sys.stdin)
+for asset in data.get("assets", []):
+    if target in asset["name"] and asset["name"].endswith(".tar.gz"):
+        print(asset["browser_download_url"])
+        print(asset.get("digest", ""))
+        break
+' "$target"
+  )
 
-  [ -n "$asset_url" ] || err "no committed release asset found for ${target}. Install Rust+cargo and re-run, or grab a binary from https://github.com/crate-ci/committed/releases"
+  [ -n "$asset_url" ] || err "no committed release asset found for ${target}. Install Rust+cargo, or grab a binary from https://github.com/crate-ci/committed/releases"
+  [ -n "$digest" ] || err "no digest published for committed asset; refusing to install unverified binary"
+
+  expected_sha256="${digest#sha256:}"
+  [ "$digest" != "$expected_sha256" ] || err "unexpected digest format from GitHub API: $digest"
 
   tmpdir="$(mktemp -d)"
 
   log "downloading $asset_url"
   curl -fsSL -o "${tmpdir}/committed.tar.gz" "$asset_url"
+
+  actual_sha256="$(sha256_of "${tmpdir}/committed.tar.gz")"
+  if [ "$actual_sha256" != "$expected_sha256" ]; then
+    rm -rf "$tmpdir"
+    err "sha256 mismatch: expected ${expected_sha256}, got ${actual_sha256}"
+  fi
+  log "sha256 verified"
+
   tar -xzf "${tmpdir}/committed.tar.gz" -C "$tmpdir"
 
   local binary
