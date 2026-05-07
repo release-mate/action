@@ -16,3 +16,6 @@ lefthook-local.yml
 # Coding agents
 .claude
 .codex
+
+# npm modules
+node_modules/
