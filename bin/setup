@@ -1,0 +1,186 @@
+#!/usr/bin/env bash
+# bin/setup — install developer tooling for release-please-github-app.
+# Idempotent: re-running skips tools already on PATH.
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly REPO_ROOT
+
+log() { printf '==> %s\n' "$*"; }
+err() { printf 'error: %s\n' "$*" >&2; exit 1; }
+have() { command -v "$1" >/dev/null 2>&1; }
+
+detect_os() {
+  case "$(uname -s)" in
+    Darwin) echo "macos" ;;
+    Linux)  echo "linux" ;;
+    *)      err "unsupported OS: $(uname -s)" ;;
+  esac
+}
+
+install_brew_pkg() {
+  local pkg="$1"
+  if have "$pkg"; then
+    log "$pkg already installed"
+    return
+  fi
+  if ! have brew; then
+    err "Homebrew not found. Install from https://brew.sh, then re-run."
+  fi
+  log "installing $pkg via Homebrew"
+  brew install "$pkg"
+}
+
+install_linux_lefthook() {
+  if have lefthook; then
+    log "lefthook already installed"
+    return
+  fi
+  if have go; then
+    log "installing lefthook via go install"
+    go install github.com/evilmartians/lefthook@latest
+    return
+  fi
+  err "lefthook not found and Go is unavailable. Install a release from https://github.com/evilmartians/lefthook/releases"
+}
+
+install_linux_actionlint() {
+  if have actionlint; then
+    log "actionlint already installed"
+    return
+  fi
+  local bindir="${HOME}/.local/bin"
+  mkdir -p "$bindir"
+  log "installing actionlint to $bindir"
+  local script
+  script="$(mktemp)"
+  curl -fsSL -o "$script" \
+    https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash
+  bash "$script" latest "$bindir"
+  rm -f "$script"
+  case ":$PATH:" in
+    *":$bindir:"*) : ;;
+    *) log "note: add $bindir to PATH to use actionlint" ;;
+  esac
+}
+
+install_linux_gitleaks() {
+  if have gitleaks; then
+    log "gitleaks already installed"
+    return
+  fi
+  err "gitleaks not found. Install via your package manager or https://github.com/gitleaks/gitleaks/releases"
+}
+
+install_mado() {
+  if have mado; then
+    log "mado already installed"
+    return
+  fi
+  if have cargo; then
+    log "installing mado via cargo"
+    cargo install mado
+    return
+  fi
+  if have brew; then
+    log "installing mado via brew tap"
+    brew tap akiomik/mado https://github.com/akiomik/mado.git
+    brew install mado
+    return
+  fi
+  err "mado not found. Install Rust+cargo, or Homebrew, then re-run. Releases: https://github.com/akiomik/mado/releases"
+}
+
+install_committed() {
+  if have committed; then
+    log "committed already installed"
+    return
+  fi
+  if have cargo; then
+    log "installing committed via cargo"
+    cargo install committed
+    return
+  fi
+  install_committed_binary
+}
+
+install_committed_binary() {
+  local os arch target bindir tmpdir asset_url
+  bindir="${HOME}/.local/bin"
+  mkdir -p "$bindir"
+
+  case "$(uname -s)" in
+    Darwin) os="apple-darwin" ;;
+    Linux)  os="unknown-linux-musl" ;;
+    *)      err "unsupported OS for committed binary: $(uname -s)" ;;
+  esac
+
+  case "$(uname -m)" in
+    x86_64|amd64)  arch="x86_64" ;;
+    arm64|aarch64) arch="aarch64" ;;
+    *)             err "unsupported arch for committed binary: $(uname -m)" ;;
+  esac
+
+  target="${arch}-${os}"
+
+  log "resolving committed release for ${target}"
+  asset_url="$(curl -fsSL https://api.github.com/repos/crate-ci/committed/releases/latest \
+    | grep -E '"browser_download_url"' \
+    | grep -E "${target}.*\\.tar\\.gz\"" \
+    | head -1 \
+    | cut -d'"' -f4)"
+
+  [ -n "$asset_url" ] || err "no committed release asset found for ${target}. Install Rust+cargo and re-run, or grab a binary from https://github.com/crate-ci/committed/releases"
+
+  tmpdir="$(mktemp -d)"
+
+  log "downloading $asset_url"
+  curl -fsSL -o "${tmpdir}/committed.tar.gz" "$asset_url"
+  tar -xzf "${tmpdir}/committed.tar.gz" -C "$tmpdir"
+
+  local binary
+  binary="$(find "$tmpdir" -type f -name committed -perm -u+x | head -1)"
+  if [ -z "$binary" ]; then
+    rm -rf "$tmpdir"
+    err "committed binary not found in archive"
+  fi
+
+  install -m 0755 "$binary" "${bindir}/committed"
+  rm -rf "$tmpdir"
+  log "installed committed to ${bindir}/committed"
+
+  case ":$PATH:" in
+    *":$bindir:"*) : ;;
+    *) log "note: add $bindir to PATH to use committed" ;;
+  esac
+}
+
+main() {
+  cd "$REPO_ROOT"
+
+  local os
+  os="$(detect_os)"
+
+  case "$os" in
+    macos)
+      install_brew_pkg lefthook
+      install_brew_pkg actionlint
+      install_brew_pkg gitleaks
+      ;;
+    linux)
+      install_linux_lefthook
+      install_linux_actionlint
+      install_linux_gitleaks
+      ;;
+  esac
+
+  install_mado
+  install_committed
+
+  log "wiring git hooks"
+  lefthook install
+
+  log "done"
+}
+
+main "$@"

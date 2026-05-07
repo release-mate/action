@@ -1,0 +1,29 @@
+pre-commit:
+  parallel: true
+  commands:
+    actionlint:
+      glob: ".github/workflows/*.yml"
+      run: actionlint {staged_files}
+    gitleaks:
+      run: gitleaks protect --staged --redact --no-banner
+    mado:
+      glob: "*.md"
+      run: mado check {staged_files}
+    trailing-whitespace:
+      glob: "*.{yml,yaml,md,sh}"
+      run: perl -i -pe 's/[ \t]+$//' {staged_files}
+      stage_fixed: true
+    end-of-file-fixer:
+      glob: "*.{yml,yaml,md,sh}"
+      run: |
+        for f in {staged_files}; do
+          if [ -s "$f" ] && [ -n "$(tail -c 1 "$f")" ]; then
+            printf '\n' >> "$f"
+          fi
+        done
+      stage_fixed: true
+
+commit-msg:
+  commands:
+    committed:
+      run: committed --commit-file {1}
