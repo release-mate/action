@@ -12,3 +12,7 @@
 # Lefthook local overrides
 lefthook-local.yml
 .lefthook-local
+
+# Coding agents
+.claude
+.codex
