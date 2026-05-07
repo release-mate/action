@@ -34,8 +34,5 @@ jobs:
           additional_files: bin/setup
           severity: warning
 
-      - name: Install mado
-        run: cargo install mado --locked
-
       - name: mado
-        run: mado check
+        uses: akiomik/mado@9b5cb3a1d234ddbacad4dd811aaa2a1e671d5306 # v0.3.0
