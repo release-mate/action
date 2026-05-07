@@ -76,6 +76,8 @@ The app subscribes to no events and exposes no webhooks.
 
 Add `.github/workflows/release.yml` to the consumer repository:
 
+<!-- x-release-please-start-version -->
+
 ```yaml
 name: Release
 
@@ -85,11 +87,13 @@ on:
 
 jobs:
   release:
-    uses: your-org/release-tooling/.github/workflows/release-please.yml@v1
+    uses: your-org/release-tooling/.github/workflows/release-please.yml@v0.0.0
     secrets:
       client-id: ${{ secrets.RELEASE_BATON_CLIENT_ID }}
       app-private-key: ${{ secrets.RELEASE_BATON_PRIVATE_KEY }}
 ```
+
+<!-- x-release-please-end -->
 
 Add the standard release-please configuration files to the repository root:
 
