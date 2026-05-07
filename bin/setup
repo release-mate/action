@@ -80,6 +80,29 @@ install_linux_shellcheck() {
   err "shellcheck not found. Install via your package manager (apt-get install shellcheck, dnf install ShellCheck, etc)."
 }
 
+install_check_jsonschema() {
+  if have check-jsonschema; then
+    log "check-jsonschema already installed"
+    return
+  fi
+  if [ "$(uname -s)" = "Darwin" ] && have brew; then
+    log "installing check-jsonschema via Homebrew"
+    brew install check-jsonschema
+    return
+  fi
+  if have pipx; then
+    log "installing check-jsonschema via pipx"
+    pipx install check-jsonschema
+    return
+  fi
+  if have pip3; then
+    log "installing check-jsonschema via pip3 --user"
+    pip3 install --user check-jsonschema
+    return
+  fi
+  err "check-jsonschema not found. Install pipx (recommended) or pip3, then re-run."
+}
+
 install_mado() {
   if have mado; then
     log "mado already installed"
@@ -219,6 +242,7 @@ main() {
 
   install_mado
   install_committed
+  install_check_jsonschema
 
   log "wiring git hooks"
   lefthook install
