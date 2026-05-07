@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# Editors
+*.swp
+*.swo
+*~
+*.bak
+.vscode/
+.idea/
+
+# Lefthook local overrides
+lefthook-local.yml
+.lefthook-local
