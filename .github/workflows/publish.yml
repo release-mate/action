@@ -4,6 +4,10 @@ on:
   release:
     types: [published]
 
+concurrency:
+  group: publish-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
 permissions: {}
 
 jobs:
