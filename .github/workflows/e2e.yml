@@ -1,0 +1,82 @@
+name: E2E
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 12 * * 1'
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  token-mint:
+    name: Token mint
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Mint installation token
+        id: token
+        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1
+        with:
+          client-id: ${{ secrets.RELEASE_BATON_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_BATON_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+
+      - name: Verify token authenticates against repo API
+        env:
+          TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::token output is empty"
+            exit 1
+          fi
+          status=$(curl -sS -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}")
+          if [ "$status" != "200" ]; then
+            echo "::error::repo API returned ${status}"
+            exit 1
+          fi
+
+  contract:
+    name: Action/workflow contract
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Compare inputs and outputs
+        run: |
+          set -euo pipefail
+
+          action_inputs=$(yq -r '.inputs | keys | .[]' action.yml | sort)
+          workflow_inputs=$(yq -r '.on.workflow_call.inputs | keys | .[]' \
+            .github/workflows/release-please.yml | sort)
+          action_outputs=$(yq -r '.outputs | keys | .[]' action.yml | sort)
+          workflow_outputs=$(yq -r '.on.workflow_call.outputs | keys | .[]' \
+            .github/workflows/release-please.yml | sort)
+
+          # action.yml takes secrets as inputs; reusable workflow declares
+          # them under `secrets:`. Reusable workflow also has `runs-on` since
+          # it owns its runner; composite action inherits the caller's runner.
+          action_comparable=$(echo "$action_inputs" \
+            | grep -vE '^(client-id|app-private-key)$' || true)
+          workflow_comparable=$(echo "$workflow_inputs" \
+            | grep -vE '^(runs-on)$' || true)
+
+          if ! diff <(echo "$action_comparable") <(echo "$workflow_comparable"); then
+            echo "::error::input drift between action.yml and release-please.yml"
+            exit 1
+          fi
+
+          if ! diff <(echo "$action_outputs") <(echo "$workflow_outputs"); then
+            echo "::error::output drift between action.yml and release-please.yml"
+            exit 1
+          fi
