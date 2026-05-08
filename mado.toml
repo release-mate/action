@@ -1,7 +1,7 @@
 [lint]
 respect-gitignore = true
 output-format = "concise"
-ignore = ["CHANGELOG.md"]
+exclude = ["./CHANGELOG.md"]
 rules = [
   "MD001",
   "MD003",

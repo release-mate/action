@@ -20,6 +20,8 @@ pre-commit:
       run: gitleaks protect --staged --redact --no-banner
     mado:
       glob: "*.md"
+      exclude:
+        - "CHANGELOG.md"
       run: mado check {staged_files}
     shellcheck:
       glob: "{*.sh,bin/*}"
