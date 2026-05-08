@@ -2,6 +2,7 @@
 
 ## 1.0.0 (2026-05-07)
 
+Initial release of the release-baton GitHub App, composite action, and reusable workflow.
 
 ### Features
 
