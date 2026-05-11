@@ -69,13 +69,33 @@ install_linux_gitleaks() {
     log "gitleaks already installed"
     return
   fi
-  err "gitleaks not found. Install via your package manager or https://github.com/gitleaks/gitleaks/releases"
+  if have apt-get; then
+    log "installing gitleaks via apt-get"
+    sudo apt-get install -y gitleaks && return || true
+  fi
+  if have dnf; then
+    log "installing gitleaks via dnf"
+    sudo dnf install -y gitleaks && return || true
+  fi
+  err "gitleaks not found. Install via your package manager or download from https://github.com/gitleaks/gitleaks/releases"
 }
 
 install_linux_shellcheck() {
   if have shellcheck; then
     log "shellcheck already installed"
     return
+  fi
+  if have apt-get; then
+    log "installing shellcheck via apt-get"
+    sudo apt-get install -y shellcheck && return || true
+  fi
+  if have dnf; then
+    log "installing shellcheck via dnf"
+    sudo dnf install -y ShellCheck && return || true
+  fi
+  if have pacman; then
+    log "installing shellcheck via pacman"
+    sudo pacman -S --noconfirm shellcheck && return || true
   fi
   err "shellcheck not found. Install via your package manager (apt-get install shellcheck, dnf install ShellCheck, etc)."
 }
