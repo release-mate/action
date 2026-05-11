@@ -23,6 +23,26 @@ on:
         type: boolean
         required: false
         default: false
+      skip-github-pull-request:
+        description: If true, cut releases for already-merged release PRs and skip opening new release pull requests.
+        type: boolean
+        required: false
+        default: false
+      skip-labeling:
+        description: If true, do not apply labels to release pull requests.
+        type: boolean
+        required: false
+        default: false
+      include-component-in-tag:
+        description: If true, prefix tags and branches with the component name (monorepo style).
+        type: boolean
+        required: false
+        default: false
+      path:
+        description: Run release-please against a subdirectory of the repository rather than the root.
+        type: string
+        required: false
+        default: ""
       runs-on:
         description: Runner label for the release job.
         type: string
@@ -84,3 +104,7 @@ jobs:
           manifest-file: ${{ inputs.manifest-file }}
           target-branch: ${{ inputs.target-branch }}
           skip-github-release: ${{ inputs.skip-github-release }}
+          skip-github-pull-request: ${{ inputs.skip-github-pull-request }}
+          skip-labeling: ${{ inputs.skip-labeling }}
+          include-component-in-tag: ${{ inputs.include-component-in-tag }}
+          path: ${{ inputs.path }}
