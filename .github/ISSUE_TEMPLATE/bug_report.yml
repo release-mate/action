@@ -1,0 +1,51 @@
+name: Bug report
+description: Report a problem with Release Baton's action, reusable workflow, or setup script.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please redact any secrets, tokens, or private repo names from logs.
+        Do not file security issues here — see [SECURITY.md](../SECURITY.md).
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: A clear description of the unexpected behaviour.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Workflow snippet
+      description: The caller workflow that invokes Release Baton (with secrets redacted).
+      render: yaml
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Failing step output. Redact tokens and private identifiers.
+      render: text
+  - type: input
+    id: action-version
+    attributes:
+      label: Release Baton version
+      description: Tag or commit SHA the workflow pins.
+      placeholder: v1.0.0
+    validations:
+      required: true
+  - type: input
+    id: runner
+    attributes:
+      label: Runner
+      placeholder: ubuntu-latest
+    validations:
+      required: true
