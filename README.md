@@ -91,7 +91,7 @@ on:
 
 jobs:
   release:
-    uses: your-org/release-tooling/.github/workflows/release-please.yml@v0.0.0
+    uses: your-org/release-tooling/.github/workflows/release-please.yml@v1.1.0
     secrets:
       client-id: ${{ secrets.RELEASE_BATON_CLIENT_ID }}
       app-private-key: ${{ secrets.RELEASE_BATON_PRIVATE_KEY }}

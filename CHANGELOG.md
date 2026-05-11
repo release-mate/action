@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/release-baton/release-baton/compare/v1.0.0...v1.1.0) (2026-05-11)
+
+
+### Features
+
+* Pass through release-please skip and monorepo inputs ([35a5427](https://github.com/release-baton/release-baton/commit/35a542793a75aa775d2fe58cf1b4feab24dcffca))
+
 ## 1.0.0 (2026-05-07)
 
 Initial release of the release-baton GitHub App, composite action, and reusable workflow.
