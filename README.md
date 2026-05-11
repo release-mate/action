@@ -102,6 +102,40 @@ Add the standard release-please configuration files to the repository root:
 
 That's the entire per-repository footprint.
 
+### Composite action (alternative)
+
+If you prefer to keep release-please as one step inside an existing job rather
+than a separate reusable-workflow job, use the composite action instead:
+
+<!-- x-release-please-start-version -->
+
+```yaml
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - uses: release-baton/release-baton@v0.0.0
+        with:
+          client-id: ${{ secrets.RELEASE_BATON_CLIENT_ID }}
+          app-private-key: ${{ secrets.RELEASE_BATON_PRIVATE_KEY }}
+```
+
+<!-- x-release-please-end -->
+
+The reusable workflow and the composite action expose the same inputs and
+outputs. Pick the reusable workflow when you want a dedicated job with
+`permissions: {}` at the workflow level; pick the composite action when you
+need to chain release-please with other steps in the same job.
+
 ## Migrating from a personal access token
 
 1. Install Release Baton on the repository.
