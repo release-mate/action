@@ -1,5 +1,9 @@
 # Release Baton
 
+[![CI](https://github.com/release-baton/release-baton/actions/workflows/ci.yml/badge.svg)](https://github.com/release-baton/release-baton/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/release-baton/release-baton/badge)](https://securityscorecards.dev/viewer/?uri=github.com/release-baton/release-baton)
+[![License](https://img.shields.io/github/license/release-baton/release-baton)](LICENSE)
+
 A GitHub App that runs
 [release-please](https://github.com/googleapis/release-please) on your
 repositories without the personal access token sprawl.
