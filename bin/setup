@@ -71,15 +71,13 @@ install_linux_gitleaks() {
     log "gitleaks already installed"
     return
   fi
-  if have apt-get; then
-    log "installing gitleaks via apt-get"
-    sudo apt-get install -y gitleaks && return || true
-  fi
-  if have dnf; then
-    log "installing gitleaks via dnf"
-    sudo dnf install -y gitleaks && return || true
-  fi
-  err "gitleaks not found. Install via your package manager or download from https://github.com/gitleaks/gitleaks/releases"
+  local arch
+  case "$(uname -m)" in
+    x86_64|amd64)  arch="x64" ;;
+    arm64|aarch64) arch="arm64" ;;
+    *)             err "unsupported arch for gitleaks binary: $(uname -m)" ;;
+  esac
+  install_github_release_binary gitleaks/gitleaks gitleaks "linux_${arch}"
 }
 
 install_linux_shellcheck() {
@@ -89,15 +87,18 @@ install_linux_shellcheck() {
   fi
   if have apt-get; then
     log "installing shellcheck via apt-get"
-    sudo apt-get install -y shellcheck && return || true
+    sudo apt-get install -y shellcheck
+    return
   fi
   if have dnf; then
     log "installing shellcheck via dnf"
-    sudo dnf install -y ShellCheck && return || true
+    sudo dnf install -y ShellCheck
+    return
   fi
   if have pacman; then
     log "installing shellcheck via pacman"
-    sudo pacman -S --noconfirm shellcheck && return || true
+    sudo pacman -S --noconfirm shellcheck
+    return
   fi
   err "shellcheck not found. Install via your package manager (apt-get install shellcheck, dnf install ShellCheck, etc)."
 }
@@ -154,27 +155,8 @@ install_committed() {
     cargo install committed
     return
   fi
-  install_committed_binary
-}
 
-sha256_of() {
-  if have shasum; then
-    shasum -a 256 "$1" | awk '{print $1}'
-  elif have sha256sum; then
-    sha256sum "$1" | awk '{print $1}'
-  else
-    err "no sha256 utility (shasum or sha256sum) available"
-  fi
-}
-
-install_committed_binary() {
-  local os arch target bindir tmpdir asset_url digest expected_sha256 actual_sha256
-
-  have python3 || err "python3 required to verify committed download. Install python3, or run cargo install committed."
-
-  bindir="${HOME}/.local/bin"
-  mkdir -p "$bindir"
-
+  local os arch
   case "$(uname -s)" in
     Darwin) os="apple-darwin" ;;
     Linux)  os="unknown-linux-musl" ;;
@@ -187,11 +169,35 @@ install_committed_binary() {
     *)             err "unsupported arch for committed binary: $(uname -m)" ;;
   esac
 
-  target="${arch}-${os}"
+  install_github_release_binary crate-ci/committed committed "${arch}-${os}"
+}
 
-  log "resolving committed release for ${target}"
+sha256_of() {
+  if have shasum; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  elif have sha256sum; then
+    sha256sum "$1" | awk '{print $1}'
+  else
+    err "no sha256 utility (shasum or sha256sum) available"
+  fi
+}
+
+# Install a binary from the latest GitHub release of $1 (owner/name).
+# $2 is the binary name (also used to locate it inside the archive).
+# $3 is a substring filter matched against `.tar.gz` asset names.
+# Verifies SHA256 against the API-published asset digest before installing.
+install_github_release_binary() {
+  local repo="$1" binary_name="$2" filter="$3"
+  local bindir tmpdir asset_url digest expected_sha256 actual_sha256 binary
+
+  have python3 || err "python3 required to verify ${binary_name} download. Install python3, or grab a binary from https://github.com/${repo}/releases"
+
+  bindir="${HOME}/.local/bin"
+  mkdir -p "$bindir"
+
+  log "resolving ${binary_name} release for ${filter}"
   { read -r asset_url; read -r digest; } < <(
-    curl -fsSL https://api.github.com/repos/crate-ci/committed/releases/latest \
+    curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" \
       | python3 -c '
 import json, sys
 target = sys.argv[1]
@@ -201,11 +207,11 @@ for asset in data.get("assets", []):
         print(asset["browser_download_url"])
         print(asset.get("digest", ""))
         break
-' "$target"
+' "$filter"
   )
 
-  [ -n "$asset_url" ] || err "no committed release asset found for ${target}. Install Rust+cargo, or grab a binary from https://github.com/crate-ci/committed/releases"
-  [ -n "$digest" ] || err "no digest published for committed asset; refusing to install unverified binary"
+  [ -n "$asset_url" ] || err "no ${binary_name} release asset matching '${filter}'. Releases: https://github.com/${repo}/releases"
+  [ -n "$digest" ] || err "no digest published for ${binary_name} asset; refusing to install unverified binary"
 
   expected_sha256="${digest#sha256:}"
   [ "$digest" != "$expected_sha256" ] || err "unexpected digest format from GitHub API: $digest"
@@ -213,31 +219,30 @@ for asset in data.get("assets", []):
   tmpdir="$(mktemp -d)"
 
   log "downloading $asset_url"
-  curl -fsSL -o "${tmpdir}/committed.tar.gz" "$asset_url"
+  curl -fsSL -o "${tmpdir}/archive.tar.gz" "$asset_url"
 
-  actual_sha256="$(sha256_of "${tmpdir}/committed.tar.gz")"
+  actual_sha256="$(sha256_of "${tmpdir}/archive.tar.gz")"
   if [ "$actual_sha256" != "$expected_sha256" ]; then
     rm -rf "$tmpdir"
     err "sha256 mismatch: expected ${expected_sha256}, got ${actual_sha256}"
   fi
   log "sha256 verified"
 
-  tar -xzf "${tmpdir}/committed.tar.gz" -C "$tmpdir"
+  tar -xzf "${tmpdir}/archive.tar.gz" -C "$tmpdir"
 
-  local binary
-  binary="$(find "$tmpdir" -type f -name committed -perm -u+x | head -1)"
+  binary="$(find "$tmpdir" -type f -name "$binary_name" -perm -u+x | head -1)"
   if [ -z "$binary" ]; then
     rm -rf "$tmpdir"
-    err "committed binary not found in archive"
+    err "${binary_name} binary not found in archive"
   fi
 
-  install -m 0755 "$binary" "${bindir}/committed"
+  install -m 0755 "$binary" "${bindir}/${binary_name}"
   rm -rf "$tmpdir"
-  log "installed committed to ${bindir}/committed"
+  log "installed ${binary_name} to ${bindir}/${binary_name}"
 
   case ":$PATH:" in
     *":$bindir:"*) : ;;
-    *) log "note: add $bindir to PATH to use committed" ;;
+    *) log "note: add $bindir to PATH to use ${binary_name}" ;;
   esac
 }
 
