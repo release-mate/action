@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bin/setup — install developer tooling for release-please-github-app.
+# bin/setup — install developer tooling for release-baton.
 # Idempotent: re-running skips tools already on PATH.
 set -euo pipefail
 
@@ -31,14 +31,16 @@ install_brew_pkg() {
   brew install "$pkg"
 }
 
+readonly LEFTHOOK_VERSION="v2.1.6"
+
 install_linux_lefthook() {
   if have lefthook; then
     log "lefthook already installed"
     return
   fi
   if have go; then
-    log "installing lefthook via go install"
-    go install github.com/evilmartians/lefthook@latest
+    log "installing lefthook ${LEFTHOOK_VERSION} via go install"
+    go install "github.com/evilmartians/lefthook@${LEFTHOOK_VERSION}"
     return
   fi
   err "lefthook not found and Go is unavailable. Install a release from https://github.com/evilmartians/lefthook/releases"
