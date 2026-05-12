@@ -150,9 +150,10 @@ install_committed() {
     log "committed already installed"
     return
   fi
-  if have cargo; then
-    log "installing committed via cargo"
-    cargo install committed
+
+  if have brew; then
+    log "installing committed via Homebrew"
+    brew install committed
     return
   fi
 
@@ -160,16 +161,27 @@ install_committed() {
   case "$(uname -s)" in
     Darwin) os="apple-darwin" ;;
     Linux)  os="unknown-linux-musl" ;;
-    *)      err "unsupported OS for committed binary: $(uname -s)" ;;
+    *)      os="" ;;
   esac
 
   case "$(uname -m)" in
     x86_64|amd64)  arch="x86_64" ;;
     arm64|aarch64) arch="aarch64" ;;
-    *)             err "unsupported arch for committed binary: $(uname -m)" ;;
+    *)             arch="" ;;
   esac
 
-  install_github_release_binary crate-ci/committed committed "${arch}-${os}"
+  if [ -n "$os" ] && [ -n "$arch" ]; then
+    install_github_release_binary crate-ci/committed committed "${arch}-${os}"
+    return
+  fi
+
+  if have cargo; then
+    log "installing committed via cargo"
+    cargo install committed
+    return
+  fi
+
+  err "committed not found and no prebuilt binary for $(uname -s)/$(uname -m). Install Homebrew, or Rust+cargo, then re-run. Releases: https://github.com/crate-ci/committed/releases"
 }
 
 sha256_of() {
