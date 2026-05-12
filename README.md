@@ -91,6 +91,23 @@ on:
 
 jobs:
   release:
+    uses: release-baton/release-baton/.github/workflows/release-please.yml@v1.1.0
+    secrets:
+      client-id: ${{ secrets.RELEASE_BATON_CLIENT_ID }}
+      app-private-key: ${{ secrets.RELEASE_BATON_PRIVATE_KEY }}
+```
+
+<!-- x-release-please-end -->
+
+If your organization restricts which reusable workflows can be called, vendor
+`release-please.yml` into your own tooling repository and reference it from
+there instead:
+
+<!-- x-release-please-start-version -->
+
+```yaml
+jobs:
+  release:
     uses: your-org/release-tooling/.github/workflows/release-please.yml@v1.1.0
     secrets:
       client-id: ${{ secrets.RELEASE_BATON_CLIENT_ID }}
@@ -127,7 +144,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions: {}
     steps:
-      - uses: release-baton/release-baton@v0.0.0
+      - uses: release-baton/release-baton@v1.1.0
         with:
           client-id: ${{ secrets.RELEASE_BATON_CLIENT_ID }}
           app-private-key: ${{ secrets.RELEASE_BATON_PRIVATE_KEY }}
