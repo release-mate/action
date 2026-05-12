@@ -131,18 +131,18 @@ install_mado() {
     log "mado already installed"
     return
   fi
-  if have cargo; then
-    log "installing mado via cargo"
-    cargo install mado
-    return
-  fi
   if have brew; then
     log "installing mado via brew tap"
     brew tap akiomik/mado https://github.com/akiomik/mado.git
     brew install mado
     return
   fi
-  err "mado not found. Install Rust+cargo, or Homebrew, then re-run. Releases: https://github.com/akiomik/mado/releases"
+  if have cargo; then
+    log "installing mado via cargo"
+    cargo install mado
+    return
+  fi
+  err "mado not found. Install Homebrew, or Rust+cargo, then re-run. Releases: https://github.com/akiomik/mado/releases"
 }
 
 install_committed() {
