@@ -91,7 +91,7 @@ on:
 
 jobs:
   release:
-    uses: release-baton/release-baton/.github/workflows/release-please.yml@v1.1.0
+    uses: release-baton/release-baton/.github/workflows/release-please.yml@v1.1.1
     secrets:
       client-id: ${{ secrets.RELEASE_BATON_CLIENT_ID }}
       app-private-key: ${{ secrets.RELEASE_BATON_PRIVATE_KEY }}
@@ -108,7 +108,7 @@ there instead:
 ```yaml
 jobs:
   release:
-    uses: your-org/release-tooling/.github/workflows/release-please.yml@v1.1.0
+    uses: your-org/release-tooling/.github/workflows/release-please.yml@v1.1.1
     secrets:
       client-id: ${{ secrets.RELEASE_BATON_CLIENT_ID }}
       app-private-key: ${{ secrets.RELEASE_BATON_PRIVATE_KEY }}
@@ -144,7 +144,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions: {}
     steps:
-      - uses: release-baton/release-baton@v1.1.0
+      - uses: release-baton/release-baton@v1.1.1
         with:
           client-id: ${{ secrets.RELEASE_BATON_CLIENT_ID }}
           app-private-key: ${{ secrets.RELEASE_BATON_PRIVATE_KEY }}
