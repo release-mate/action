@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/release-baton/release-baton/compare/v1.1.0...v1.1.1) (2026-05-12)
+
+
+### Bug Fixes
+
+* **setup:** Improve Linux installer reliability ([50f7a43](https://github.com/release-baton/release-baton/commit/50f7a432dad29c061ac3ba02ebe335ec720e34cf))
+
 ## [1.1.0](https://github.com/release-baton/release-baton/compare/v1.0.0...v1.1.0) (2026-05-11)
 
 
