@@ -4,13 +4,14 @@
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/release-baton/release-baton/badge)](https://securityscorecards.dev/viewer/?uri=github.com/release-baton/release-baton)
 [![License](https://img.shields.io/github/license/release-baton/release-baton)](LICENSE)
 
-A GitHub App that runs
+A [GitHub App](https://github.com/apps/release-baton) that runs
 [release-please](https://github.com/googleapis/release-please) on your
 repositories without the personal access token sprawl.
 
-Install the app, add a five-line workflow to each repository, and Release Baton
-mints a short-lived, repository-scoped installation token at release time. No
-shared PATs, no rotation toil, no account-bound credentials.
+Install [the app](https://github.com/apps/release-baton), add a five-line
+workflow to each repository, and Release Baton mints a short-lived,
+repository-scoped installation token at release time. No shared PATs, no
+rotation toil, no account-bound credentials.
 
 ## Why
 
@@ -159,7 +160,7 @@ need to chain release-please with other steps in the same job.
 
 ## Migrating from a personal access token
 
-1. Install Release Baton on the repository.
+1. Install [Release Baton](https://github.com/apps/release-baton) on the repository.
 2. Replace the existing release workflow with the caller workflow above.
 3. Delete the repository-level PAT secret.
 4. Revoke the PAT.
@@ -208,7 +209,7 @@ To report a security issue, see [SECURITY.md](SECURITY.md).
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `actions/create-github-app-token` step fails with 404 | App not installed on this repository | Install Release Baton on the repository in org settings, then re-run. |
+| `actions/create-github-app-token` step fails with 404 | App not installed on this repository | Install [Release Baton](https://github.com/apps/release-baton) on the repository in org settings, then re-run. |
 | API calls return 403 after the token mints successfully | Token's `repositories:` scope mismatches the caller repo name | Confirm the caller workflow runs in the repository the app is installed on. The token is scoped to one repo per run. |
 | Release PR opens but never tags a release | Commits since the last release are not Conventional Commits | Run `committed HEAD~..HEAD` locally; release-please ignores commits without recognised types. |
 | `permissions: {}` strips a permission you need | The default `GITHUB_TOKEN` is stripped, but you wanted to use it for an extra step | Add the permission to the specific job that needs it; the app token still mints under its own scopes. |
