@@ -6,10 +6,12 @@
 
 A [GitHub App](https://github.com/apps/release-baton) that runs
 [release-please](https://github.com/googleapis/release-please) on your
-repositories without the personal access token sprawl.
+repositories without the personal access token sprawl. The listing linked
+above is a reference — each org registers its own app modelled on it, since a
+GitHub App's private key cannot be shared between publishers and consumers.
 
-Install [the app](https://github.com/apps/release-baton), add a five-line
-workflow to each repository, and Release Baton mints a short-lived,
+Register the app, install it on the repositories that should release, add a
+five-line workflow to each, and Release Baton mints a short-lived,
 repository-scoped installation token at release time. No shared PATs, no
 rotation toil, no account-bound credentials.
 
@@ -66,6 +68,11 @@ The app subscribes to no events and exposes no webhooks.
 ## Installation
 
 ### One-time setup (org admin)
+
+Each organization registers its own GitHub App modelled on the
+[reference listing](https://github.com/apps/release-baton). The published
+listing exists so you can copy the name, description, and permission shape; the
+private key that signs token requests must be one you generate and control.
 
 1. Register the GitHub App on your organization. Set the homepage to your
    tooling repository, leave the callback URL blank, disable webhooks, and
