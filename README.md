@@ -14,7 +14,7 @@ is documented separately in
 on your organization once, then wire the action below into each consumer
 repository.
 
-## Why an app token?
+## Why an app token is used
 
 The default release-please workflow uses `GITHUB_TOKEN`, which cannot trigger
 downstream workflows from the release commit. The common workaround — a
