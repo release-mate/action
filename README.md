@@ -1,17 +1,17 @@
-# Release Baton
+# Release Mate
 
-[![CI](https://github.com/release-baton/release-baton/actions/workflows/ci.yml/badge.svg)](https://github.com/release-baton/release-baton/actions/workflows/ci.yml)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/release-baton/release-baton/badge)](https://securityscorecards.dev/viewer/?uri=github.com/release-baton/release-baton)
-[![License](https://img.shields.io/github/license/release-baton/release-baton)](LICENSE)
+[![CI](https://github.com/release-mate/action/actions/workflows/ci.yml/badge.svg)](https://github.com/release-mate/action/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/release-mate/action/badge)](https://securityscorecards.dev/viewer/?uri=github.com/release-mate/action)
+[![License](https://img.shields.io/github/license/release-mate/action)](LICENSE)
 
-A [GitHub App](https://github.com/apps/release-baton) that runs
+A [GitHub App](https://github.com/apps/release-mate) that runs
 [release-please](https://github.com/googleapis/release-please) on your
 repositories without the personal access token sprawl. The listing linked
 above is a reference — each org registers its own app modelled on it, since a
 GitHub App's private key cannot be shared between publishers and consumers.
 
 Register the app, install it on the repositories that should release, add a
-five-line workflow to each, and Release Baton mints a short-lived,
+five-line workflow to each, and Release Mate mints a short-lived,
 repository-scoped installation token at release time. No shared PATs, no
 rotation toil, no account-bound credentials.
 
@@ -27,13 +27,13 @@ secrets. That pattern is painful:
 - A leaked PAT exposes every repository it was scoped to.
 - New repositories need new tokens before they can release.
 
-Release Baton replaces every release PAT in your organization with one GitHub
+Release Mate replaces every release PAT in your organization with one GitHub
 App. Tokens are minted per workflow run, scoped to a single repository, and
 expire in roughly an hour.
 
 ## How it works
 
-Release Baton is a credential broker, not a service. There is no backend to
+Release Mate is a credential broker, not a service. There is no backend to
 host. The app is registered once, installed on the repositories that should
 release, and consumed by a reusable workflow that lives in a central tooling
 repository.
@@ -54,7 +54,7 @@ flowchart LR
 
 ## Permissions
 
-Release Baton requests only what release-please needs:
+Release Mate requests only what release-please needs:
 
 | Scope | Access | Why |
 |-------|--------|-----|
@@ -70,7 +70,7 @@ The app subscribes to no events and exposes no webhooks.
 ### One-time setup (org admin)
 
 Each organization registers its own GitHub App modelled on the
-[reference listing](https://github.com/apps/release-baton). The published
+[reference listing](https://github.com/apps/release-mate). The published
 listing exists so you can copy the name, description, and permission shape; the
 private key that signs token requests must be one you generate and control.
 
@@ -81,8 +81,8 @@ private key that signs token requests must be one you generate and control.
 3. Note the Client ID (visible on the app's settings page).
 4. Install the app on the repositories that should release.
 5. Store the credentials as **organization secrets**:
-   - `RELEASE_BATON_CLIENT_ID`
-   - `RELEASE_BATON_PRIVATE_KEY`
+   - `RELEASE_MATE_CLIENT_ID`
+   - `RELEASE_MATE_PRIVATE_KEY`
 
 ### Per-repository setup
 
@@ -99,10 +99,10 @@ on:
 
 jobs:
   release:
-    uses: release-baton/release-baton/.github/workflows/release-please.yml@v1.1.1
+    uses: release-mate/action/.github/workflows/release-please.yml@v1.1.1
     secrets:
-      client-id: ${{ secrets.RELEASE_BATON_CLIENT_ID }}
-      app-private-key: ${{ secrets.RELEASE_BATON_PRIVATE_KEY }}
+      client-id: ${{ secrets.RELEASE_MATE_CLIENT_ID }}
+      app-private-key: ${{ secrets.RELEASE_MATE_PRIVATE_KEY }}
 ```
 
 <!-- x-release-please-end -->
@@ -118,8 +118,8 @@ jobs:
   release:
     uses: your-org/release-tooling/.github/workflows/release-please.yml@v1.1.1
     secrets:
-      client-id: ${{ secrets.RELEASE_BATON_CLIENT_ID }}
-      app-private-key: ${{ secrets.RELEASE_BATON_PRIVATE_KEY }}
+      client-id: ${{ secrets.RELEASE_MATE_CLIENT_ID }}
+      app-private-key: ${{ secrets.RELEASE_MATE_PRIVATE_KEY }}
 ```
 
 <!-- x-release-please-end -->
@@ -152,10 +152,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions: {}
     steps:
-      - uses: release-baton/release-baton@v1.1.1
+      - uses: release-mate/action@v1.1.1
         with:
-          client-id: ${{ secrets.RELEASE_BATON_CLIENT_ID }}
-          app-private-key: ${{ secrets.RELEASE_BATON_PRIVATE_KEY }}
+          client-id: ${{ secrets.RELEASE_MATE_CLIENT_ID }}
+          app-private-key: ${{ secrets.RELEASE_MATE_PRIVATE_KEY }}
 ```
 
 <!-- x-release-please-end -->
@@ -167,7 +167,7 @@ need to chain release-please with other steps in the same job.
 
 ## Migrating from a personal access token
 
-1. Install your Release Baton app on the repository.
+1. Install your Release Mate app on the repository.
 2. Replace the existing release workflow with the caller workflow above.
 3. Delete the repository-level PAT secret.
 4. Revoke the PAT.
@@ -196,7 +196,7 @@ The lifecycle of a single token:
 sequenceDiagram
     participant Push as Push to main
     participant Caller as Caller workflow
-    participant App as Release Baton
+    participant App as Release Mate
     participant API as GitHub API
     participant RP as release-please
 
@@ -216,14 +216,14 @@ To report a security issue, see [SECURITY.md](SECURITY.md).
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `actions/create-github-app-token` step fails with 404 | App not installed on this repository | Install your Release Baton app on the repository in org settings, then re-run. |
+| `actions/create-github-app-token` step fails with 404 | App not installed on this repository | Install your Release Mate app on the repository in org settings, then re-run. |
 | API calls return 403 after the token mints successfully | Token's `repositories:` scope mismatches the caller repo name | Confirm the caller workflow runs in the repository the app is installed on. The token is scoped to one repo per run. |
 | Release PR opens but never tags a release | Commits since the last release are not Conventional Commits | Run `committed HEAD~..HEAD` locally; release-please ignores commits without recognised types. |
 | `permissions: {}` strips a permission you need | The default `GITHUB_TOKEN` is stripped, but you wanted to use it for an extra step | Add the permission to the specific job that needs it; the app token still mints under its own scopes. |
 
 ## Limitations
 
-- Release Baton runs inside GitHub Actions. If your release flow runs
+- Release Mate runs inside GitHub Actions. If your release flow runs
   elsewhere, this app does not help.
 - The app installation must include every repository that needs to release.
   Repositories outside the installation will receive 403 from the API even if a
@@ -245,6 +245,6 @@ that release-please can compute version bumps correctly.
 ## Naming
 
 A baton is what a conductor passes between sections of an orchestra — a small,
-deliberate handoff that keeps everything in time. Release Baton hands
+deliberate handoff that keeps everything in time. Release Mate hands
 credentials from your organization to the workflow that needs them, briefly,
 then takes them back.
