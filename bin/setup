@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bin/setup — install developer tooling for release-baton.
+# bin/setup — install developer tooling for release-mate.
 # Idempotent: re-running skips tools already on PATH.
 set -euo pipefail
 

@@ -2,13 +2,13 @@
 
 ## Supported versions
 
-The latest tagged release of Release Baton receives security updates. Older
+The latest tagged release of Release Mate receives security updates. Older
 tagged versions do not.
 
 ## Reporting a vulnerability
 
 Report security issues privately via [GitHub's "Report a vulnerability"
-form](https://github.com/release-baton/release-baton/security/advisories/new).
+form](https://github.com/release-mate/action/security/advisories/new).
 Do not open a public issue.
 
 You should expect an acknowledgement within five working days. If you have
@@ -18,7 +18,7 @@ include vulnerability detail.
 
 ## Scope
 
-Release Baton holds no secrets server-side. The GitHub App's private key
+Release Mate holds no secrets server-side. The GitHub App's private key
 is generated and stored by the installing organization, and installation
 tokens are minted at workflow time and expire when the job ends.
 
