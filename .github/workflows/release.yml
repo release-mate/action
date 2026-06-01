@@ -11,7 +11,8 @@ concurrency:
 permissions: {}
 
 jobs:
-  release:
+  release-mate:
+    name: Release Mate
     uses: ./.github/workflows/release-please.yml
     secrets:
       client-id: ${{ secrets.RELEASE_MATE_CLIENT_ID }}
