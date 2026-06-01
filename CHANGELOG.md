@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/release-mate/action/compare/v1.1.1...v1.1.2) (2026-06-01)
+
+
+### Bug Fixes
+
+* **docs:** Rename GitHub Action, update release version URLs ([4230e7c](https://github.com/release-mate/action/commit/4230e7cbec7b5ed489ccfeaab443cb66c4c2b331))
+
 ## [1.1.1](https://github.com/release-mate/action/compare/v1.1.0...v1.1.1) (2026-05-12)
 
 
