@@ -118,7 +118,7 @@ install_mado() {
   fi
   if have cargo; then
     log "installing mado ${MADO_VERSION} via cargo"
-    cargo install mado --version "${MADO_VERSION}"
+    cargo install mado --version "${MADO_VERSION}" --locked
     return
   fi
   err "mado not found. Install Homebrew, or Rust+cargo, then re-run. Releases: https://github.com/akiomik/mado/releases"
@@ -156,7 +156,7 @@ install_committed() {
 
   if have cargo; then
     log "installing committed ${COMMITTED_VERSION} via cargo"
-    cargo install committed --version "${COMMITTED_VERSION#v}"
+    cargo install committed --version "${COMMITTED_VERSION#v}" --locked
     return
   fi
 
