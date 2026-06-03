@@ -37,6 +37,66 @@ lookup_shasum() {
   ' "$SHASUMS_FILE"
 }
 
+fetch_optional() {
+  curl -fsSL -o "$2" "$1" 2>/dev/null && return 0
+  rm -f "$2"
+  return 1
+}
+
+# Best-effort Sigstore keyless signature verification for a release asset.
+#
+# Quietly skips when:
+#   - `cosign` is not on PATH, or
+#   - the upstream release does not publish a `.sigstore` bundle or
+#     matching `.sig`/`.pem` detached files for this asset.
+#
+# When a signature is found, the asset's bytes are checked against the
+# transparency-log-issued certificate; identity must match a workflow in
+# the same `${repo}` and the issuer must be GitHub Actions' OIDC. A
+# failed verification stops the script with an error.
+maybe_cosign_verify() {
+  local repo="$1" version="$2" asset_name="$3" asset_path="$4" tmpdir="$5"
+  if ! have cosign; then
+    log "cosign not on PATH; skipping signature verification for ${asset_name}"
+    return
+  fi
+
+  local base="https://github.com/${repo}/releases/download/${version}"
+  local bundle_path="${tmpdir}/${asset_name}.sigstore"
+  local sig_path="${tmpdir}/${asset_name}.sig"
+  local cert_path="${tmpdir}/${asset_name}.pem"
+  local identity_re="^https://github.com/${repo}/"
+  local issuer="https://token.actions.githubusercontent.com"
+
+  if fetch_optional "${base}/${asset_name}.sigstore" "${bundle_path}"; then
+    log "verifying sigstore bundle for ${asset_name}"
+    cosign verify-blob \
+      --bundle "${bundle_path}" \
+      --certificate-identity-regexp "${identity_re}" \
+      --certificate-oidc-issuer "${issuer}" \
+      "${asset_path}" \
+      || err "cosign signature verification failed for ${asset_name}"
+    log "sigstore signature verified for ${asset_name}"
+    return
+  fi
+
+  if fetch_optional "${base}/${asset_name}.sig" "${sig_path}" \
+       && fetch_optional "${base}/${asset_name}.pem" "${cert_path}"; then
+    log "verifying detached cosign signature for ${asset_name}"
+    cosign verify-blob \
+      --signature "${sig_path}" \
+      --certificate "${cert_path}" \
+      --certificate-identity-regexp "${identity_re}" \
+      --certificate-oidc-issuer "${issuer}" \
+      "${asset_path}" \
+      || err "cosign signature verification failed for ${asset_name}"
+    log "detached cosign signature verified for ${asset_name}"
+    return
+  fi
+
+  log "no sigstore signature published for ${asset_name}; skipping (sha256 already verified)"
+}
+
 # Download a single asset from a GitHub release, SHA256-verify it against
 # bin/setup.shasums, then install the contained binary to ~/.local/bin.
 #
@@ -71,6 +131,8 @@ install_github_release_asset() {
     err "sha256 mismatch for ${asset_name}: expected ${expected_sha256}, got ${actual_sha256}"
   fi
   log "sha256 verified for ${asset_name}"
+
+  maybe_cosign_verify "$repo" "$version" "$asset_name" "$tmpasset" "$tmpdir"
 
   case "$asset_name" in
     *.tar.gz|*.tar.xz)
