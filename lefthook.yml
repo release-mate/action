@@ -25,6 +25,8 @@ pre-commit:
       run: mado check {staged_files}
     shellcheck:
       glob: "{*.sh,bin/*}"
+      exclude:
+        - "bin/*.shasums"
       run: shellcheck {staged_files}
     trailing-whitespace:
       glob: "*.{yml,yaml,md,sh,toml,json}"

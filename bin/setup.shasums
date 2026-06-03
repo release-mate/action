@@ -1,0 +1,36 @@
+# bin/setup.shasums — pinned SHA256 hashes for every GitHub release asset
+# bin/setup downloads. Source of truth for integrity verification — local
+# values are trusted over anything the GitHub API or upstream releases page
+# returns. Regenerate when bumping a *_VERSION constant in bin/setup.
+#
+# Format: <owner/repo> <version-tag> <asset-filename> <sha256>
+
+rhysd/actionlint v1.7.12 actionlint_1.7.12_linux_amd64.tar.gz 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+rhysd/actionlint v1.7.12 actionlint_1.7.12_linux_arm64.tar.gz 325e971b6ba9bfa504672e29be93c24981eeb1c07576d730e9f7c8805afff0c6
+rhysd/actionlint v1.7.12 actionlint_1.7.12_darwin_amd64.tar.gz 5b44c3bc2255115c9b69e30efc0fecdf498fdb63c5d58e17084fd5f16324c644
+rhysd/actionlint v1.7.12 actionlint_1.7.12_darwin_arm64.tar.gz aba9ced2dee8d27fecca3dc7feb1a7f9a52caefa1eb46f3271ea66b6e0e6953f
+
+gitleaks/gitleaks v8.30.1 gitleaks_8.30.1_linux_x64.tar.gz 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+gitleaks/gitleaks v8.30.1 gitleaks_8.30.1_linux_arm64.tar.gz e4a487ee7ccd7d3a7f7ec08657610aa3606637dab924210b3aee62570fb4b080
+gitleaks/gitleaks v8.30.1 gitleaks_8.30.1_darwin_x64.tar.gz dfe101a4db2255fc85120ac7f3d25e4342c3c20cf749f2c20a18081af1952709
+gitleaks/gitleaks v8.30.1 gitleaks_8.30.1_darwin_arm64.tar.gz b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5
+
+koalaman/shellcheck v0.11.0 shellcheck-v0.11.0.linux.x86_64.tar.xz 8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198
+koalaman/shellcheck v0.11.0 shellcheck-v0.11.0.linux.aarch64.tar.xz 12b331c1d2db6b9eb13cfca64306b1b157a86eb69db83023e261eaa7e7c14588
+koalaman/shellcheck v0.11.0 shellcheck-v0.11.0.darwin.x86_64.tar.xz 3c89db4edcab7cf1c27bff178882e0f6f27f7afdf54e859fa041fca10febe4c6
+koalaman/shellcheck v0.11.0 shellcheck-v0.11.0.darwin.aarch64.tar.xz 56affdd8de5527894dca6dc3d7e0a99a873b0f004d7aabc30ae407d3f48b0a79
+
+crate-ci/committed v1.1.11 committed-v1.1.11-x86_64-unknown-linux-musl.tar.gz 1e5c20049eeaa4633e6798283913f92dc90a97f2b5c6dfc28e8c4b7e77a67157
+crate-ci/committed v1.1.11 committed-v1.1.11-aarch64-unknown-linux-musl.tar.gz 96d6334ab2dccc0e90b67ebdcaa2af856f29eadef48161926e21a0e35f1ae80d
+crate-ci/committed v1.1.11 committed-v1.1.11-x86_64-apple-darwin.tar.gz b1718d951c8a90539ffb7a81145fdadf81c6c9a1f17560be433a74c5b3f7bfca
+crate-ci/committed v1.1.11 committed-v1.1.11-aarch64-apple-darwin.tar.gz 98eae08e1b0715ef6446c4bd08352f21f3a3ce21535a35687a1e132bcb4fcac1
+
+evilmartians/lefthook v2.1.9 lefthook_2.1.9_Linux_x86_64 0d60b0d350c923963729574f6431171f0277788884ad0c6284fa0160c36e3877
+evilmartians/lefthook v2.1.9 lefthook_2.1.9_Linux_arm64 304321997336c450af6b5c0cc641c59141168866fca0b1fc3767e067812600a9
+evilmartians/lefthook v2.1.9 lefthook_2.1.9_MacOS_x86_64 0868b9b5b9cd807b0f9e0135fadaff1bd99fa026cccc15cbfd4510f0ee3b5431
+evilmartians/lefthook v2.1.9 lefthook_2.1.9_MacOS_arm64 fd506e05954af2062ce320d59ac1f5bf13fad8d694694a72bc6ef91e8c284e3d
+
+akiomik/mado v0.3.0 mado-Linux-gnu-x86_64.tar.gz aad845cd23c8c0417cdf87b8376b75e131c38e1cb890124790567735306de6d7
+akiomik/mado v0.3.0 mado-Linux-gnu-arm64.tar.gz ffcdd4845329a69bc729c0242abb6163f23495c0b04dbbaf608cbed43a2f4976
+akiomik/mado v0.3.0 mado-macOS-x86_64.tar.gz b8a3fb5cf3e84747c12a848fb87ce08c1c09dc5a957c1f74733bea6cb7f9d560
+akiomik/mado v0.3.0 mado-macOS-arm64.tar.gz 4000955c41799c839dbf1b4c3011ff1688bd31d0af88be282eec622a07ad9743

@@ -5,92 +5,220 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly REPO_ROOT
+readonly SHASUMS_FILE="${REPO_ROOT}/bin/setup.shasums"
 
 log() { printf '==> %s\n' "$*"; }
 err() { printf 'error: %s\n' "$*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
-detect_os() {
-  case "$(uname -s)" in
-    Darwin) echo "macos" ;;
-    Linux)  echo "linux" ;;
-    *)      err "unsupported OS: $(uname -s)" ;;
-  esac
-}
-
-install_brew_pkg() {
-  local pkg="$1"
-  if have "$pkg"; then
-    log "$pkg already installed"
-    return
-  fi
-  if ! have brew; then
-    err "Homebrew not found. Install from https://brew.sh, then re-run."
-  fi
-  log "installing $pkg via Homebrew"
-  brew install "$pkg"
-}
-
 readonly ACTIONLINT_VERSION="v1.7.12"
 readonly COMMITTED_VERSION="v1.1.11"
 readonly GITLEAKS_VERSION="v8.30.1"
 readonly LEFTHOOK_VERSION="v2.1.9"
-readonly MADO_VERSION="0.3.0"
+readonly MADO_VERSION="v0.3.0"
 readonly SHELLCHECK_VERSION="v0.11.0"
 
-install_linux_lefthook() {
+sha256_of() {
+  if have shasum; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  elif have sha256sum; then
+    sha256sum "$1" | awk '{print $1}'
+  else
+    err "no sha256 utility (shasum or sha256sum) available"
+  fi
+}
+
+# Echo the SHA256 of <repo> <version> <asset-filename> from setup.shasums.
+# Empty output if no entry is registered.
+lookup_shasum() {
+  local repo="$1" version="$2" asset="$3"
+  awk -v r="$repo" -v v="$version" -v a="$asset" '
+    $1 == r && $2 == v && $3 == a { print $4; exit }
+  ' "$SHASUMS_FILE"
+}
+
+# Download a single asset from a GitHub release, SHA256-verify it against
+# bin/setup.shasums, then install the contained binary to ~/.local/bin.
+#
+# Args:
+#   $1 repo (owner/name)
+#   $2 binary name (also used to locate it inside an extracted archive)
+#   $3 exact asset filename within the release
+#   $4 release tag (e.g. "v1.2.3")
+#
+# Supported asset shapes: `.tar.gz`, `.tar.xz`, `.gz`-compressed single
+# binary, and uncompressed single binary.
+install_github_release_asset() {
+  local repo="$1" binary_name="$2" asset_name="$3" version="$4"
+  local bindir tmpdir tmpasset asset_url expected_sha256 actual_sha256 binary
+
+  bindir="${HOME}/.local/bin"
+  mkdir -p "$bindir"
+
+  expected_sha256="$(lookup_shasum "$repo" "$version" "$asset_name")"
+  [ -n "$expected_sha256" ] || err "no SHA256 entry in ${SHASUMS_FILE} for ${repo} ${version} ${asset_name}"
+
+  tmpdir="$(mktemp -d)"
+  tmpasset="${tmpdir}/${asset_name}"
+  asset_url="https://github.com/${repo}/releases/download/${version}/${asset_name}"
+
+  log "downloading ${asset_url}"
+  curl -fsSL -o "${tmpasset}" "${asset_url}"
+
+  actual_sha256="$(sha256_of "${tmpasset}")"
+  if [ "$actual_sha256" != "$expected_sha256" ]; then
+    rm -rf "$tmpdir"
+    err "sha256 mismatch for ${asset_name}: expected ${expected_sha256}, got ${actual_sha256}"
+  fi
+  log "sha256 verified for ${asset_name}"
+
+  case "$asset_name" in
+    *.tar.gz|*.tar.xz)
+      tar -xf "${tmpasset}" -C "$tmpdir"
+      binary="$(find "$tmpdir" -type f -name "$binary_name" -perm -u+x | head -1)"
+      ;;
+    *.gz)
+      gunzip "${tmpasset}"
+      binary="${tmpasset%.gz}"
+      ;;
+    *)
+      binary="${tmpasset}"
+      ;;
+  esac
+
+  if [ -z "$binary" ] || [ ! -f "$binary" ]; then
+    rm -rf "$tmpdir"
+    err "${binary_name} binary not found after extracting ${asset_name}"
+  fi
+
+  install -m 0755 "$binary" "${bindir}/${binary_name}"
+  rm -rf "$tmpdir"
+  log "installed ${binary_name} ${version} to ${bindir}/${binary_name}"
+
+  case ":$PATH:" in
+    *":$bindir:"*) : ;;
+    *) log "note: add $bindir to PATH to use ${binary_name}" ;;
+  esac
+}
+
+install_lefthook() {
   if have lefthook; then
     log "lefthook already installed"
     return
   fi
-  if have go; then
-    log "installing lefthook ${LEFTHOOK_VERSION} via go install"
-    go install "github.com/evilmartians/lefthook@${LEFTHOOK_VERSION}"
-    return
-  fi
-  err "lefthook not found and Go is unavailable. Install a release from https://github.com/evilmartians/lefthook/releases"
+  local os arch
+  case "$(uname -s)" in
+    Darwin) os="MacOS" ;;
+    Linux)  os="Linux" ;;
+    *)      err "unsupported OS for lefthook binary: $(uname -s)" ;;
+  esac
+  case "$(uname -m)" in
+    x86_64|amd64)  arch="x86_64" ;;
+    arm64|aarch64) arch="arm64" ;;
+    *)             err "unsupported arch for lefthook binary: $(uname -m)" ;;
+  esac
+  install_github_release_asset evilmartians/lefthook lefthook \
+    "lefthook_${LEFTHOOK_VERSION#v}_${os}_${arch}" "${LEFTHOOK_VERSION}"
 }
 
-install_linux_actionlint() {
+install_actionlint() {
   if have actionlint; then
     log "actionlint already installed"
     return
   fi
-  local arch
+  local os arch
+  case "$(uname -s)" in
+    Darwin) os="darwin" ;;
+    Linux)  os="linux" ;;
+    *)      err "unsupported OS for actionlint binary: $(uname -s)" ;;
+  esac
   case "$(uname -m)" in
     x86_64|amd64)  arch="amd64" ;;
     arm64|aarch64) arch="arm64" ;;
     *)             err "unsupported arch for actionlint binary: $(uname -m)" ;;
   esac
-  install_github_release_binary rhysd/actionlint actionlint "linux_${arch}" "${ACTIONLINT_VERSION}"
+  install_github_release_asset rhysd/actionlint actionlint \
+    "actionlint_${ACTIONLINT_VERSION#v}_${os}_${arch}.tar.gz" "${ACTIONLINT_VERSION}"
 }
 
-install_linux_gitleaks() {
+install_gitleaks() {
   if have gitleaks; then
     log "gitleaks already installed"
     return
   fi
-  local arch
+  local os arch
+  case "$(uname -s)" in
+    Darwin) os="darwin" ;;
+    Linux)  os="linux" ;;
+    *)      err "unsupported OS for gitleaks binary: $(uname -s)" ;;
+  esac
   case "$(uname -m)" in
     x86_64|amd64)  arch="x64" ;;
     arm64|aarch64) arch="arm64" ;;
     *)             err "unsupported arch for gitleaks binary: $(uname -m)" ;;
   esac
-  install_github_release_binary gitleaks/gitleaks gitleaks "linux_${arch}" "${GITLEAKS_VERSION}"
+  install_github_release_asset gitleaks/gitleaks gitleaks \
+    "gitleaks_${GITLEAKS_VERSION#v}_${os}_${arch}.tar.gz" "${GITLEAKS_VERSION}"
 }
 
-install_linux_shellcheck() {
+install_shellcheck() {
   if have shellcheck; then
     log "shellcheck already installed"
     return
   fi
-  local arch
+  local os arch
+  case "$(uname -s)" in
+    Darwin) os="darwin" ;;
+    Linux)  os="linux" ;;
+    *)      err "unsupported OS for shellcheck binary: $(uname -s)" ;;
+  esac
   case "$(uname -m)" in
     x86_64|amd64)  arch="x86_64" ;;
     arm64|aarch64) arch="aarch64" ;;
     *)             err "unsupported arch for shellcheck binary: $(uname -m)" ;;
   esac
-  install_github_release_binary koalaman/shellcheck shellcheck "linux.${arch}" "${SHELLCHECK_VERSION}"
+  install_github_release_asset koalaman/shellcheck shellcheck \
+    "shellcheck-${SHELLCHECK_VERSION}.${os}.${arch}.tar.xz" "${SHELLCHECK_VERSION}"
+}
+
+install_committed() {
+  if have committed; then
+    log "committed already installed"
+    return
+  fi
+  local os arch
+  case "$(uname -s)" in
+    Darwin) os="apple-darwin" ;;
+    Linux)  os="unknown-linux-musl" ;;
+    *)      err "unsupported OS for committed binary: $(uname -s)" ;;
+  esac
+  case "$(uname -m)" in
+    x86_64|amd64)  arch="x86_64" ;;
+    arm64|aarch64) arch="aarch64" ;;
+    *)             err "unsupported arch for committed binary: $(uname -m)" ;;
+  esac
+  install_github_release_asset crate-ci/committed committed \
+    "committed-${COMMITTED_VERSION}-${arch}-${os}.tar.gz" "${COMMITTED_VERSION}"
+}
+
+install_mado() {
+  if have mado; then
+    log "mado already installed"
+    return
+  fi
+  local os arch
+  case "$(uname -s)" in
+    Darwin) os="macOS" ;;
+    Linux)  os="Linux-gnu" ;;
+    *)      err "unsupported OS for mado binary: $(uname -s)" ;;
+  esac
+  case "$(uname -m)" in
+    x86_64|amd64)  arch="x86_64" ;;
+    arm64|aarch64) arch="arm64" ;;
+    *)             err "unsupported arch for mado binary: $(uname -m)" ;;
+  esac
+  install_github_release_asset akiomik/mado mado \
+    "mado-${os}-${arch}.tar.gz" "${MADO_VERSION}"
 }
 
 install_check_jsonschema() {
@@ -105,176 +233,13 @@ install_check_jsonschema() {
   brew install check-jsonschema
 }
 
-install_mado() {
-  if have mado; then
-    log "mado already installed"
-    return
-  fi
-  if have brew; then
-    log "installing mado via brew tap"
-    brew tap akiomik/mado https://github.com/akiomik/mado.git
-    brew install mado
-    return
-  fi
-  if have cargo; then
-    log "installing mado ${MADO_VERSION} via cargo"
-    cargo install mado --version "${MADO_VERSION}" --locked
-    return
-  fi
-  err "mado not found. Install Homebrew, or Rust+cargo, then re-run. Releases: https://github.com/akiomik/mado/releases"
-}
-
-install_committed() {
-  if have committed; then
-    log "committed already installed"
-    return
-  fi
-
-  if have brew; then
-    log "installing committed via Homebrew"
-    brew install committed
-    return
-  fi
-
-  local os arch
-  case "$(uname -s)" in
-    Darwin) os="apple-darwin" ;;
-    Linux)  os="unknown-linux-musl" ;;
-    *)      os="" ;;
-  esac
-
-  case "$(uname -m)" in
-    x86_64|amd64)  arch="x86_64" ;;
-    arm64|aarch64) arch="aarch64" ;;
-    *)             arch="" ;;
-  esac
-
-  if [ -n "$os" ] && [ -n "$arch" ]; then
-    install_github_release_binary crate-ci/committed committed "${arch}-${os}" "${COMMITTED_VERSION}"
-    return
-  fi
-
-  if have cargo; then
-    log "installing committed ${COMMITTED_VERSION} via cargo"
-    cargo install committed --version "${COMMITTED_VERSION#v}" --locked
-    return
-  fi
-
-  err "committed not found and no prebuilt binary for $(uname -s)/$(uname -m). Install Homebrew, or Rust+cargo, then re-run. Releases: https://github.com/crate-ci/committed/releases"
-}
-
-sha256_of() {
-  if have shasum; then
-    shasum -a 256 "$1" | awk '{print $1}'
-  elif have sha256sum; then
-    sha256sum "$1" | awk '{print $1}'
-  else
-    err "no sha256 utility (shasum or sha256sum) available"
-  fi
-}
-
-# Install a binary from a GitHub release of $1 (owner/name).
-# $2 is the binary name (also used to locate it inside the archive).
-# $3 is a substring filter matched against `.tar.gz`/`.tar.xz` asset names.
-# $4 is the release tag to pin (e.g. "v1.2.3"); defaults to "latest".
-# Verifies SHA256 against the API-published asset digest before installing.
-install_github_release_binary() {
-  local repo="$1" binary_name="$2" filter="$3" version="${4:-latest}"
-  local bindir tmpdir asset_url digest expected_sha256 actual_sha256 binary
-  local api_path archive_ext archive_path
-
-  have python3 || err "python3 required to verify ${binary_name} download. Install python3, or grab a binary from https://github.com/${repo}/releases"
-
-  bindir="${HOME}/.local/bin"
-  mkdir -p "$bindir"
-
-  if [ "$version" = "latest" ]; then
-    api_path="releases/latest"
-    log "resolving ${binary_name} latest release for ${filter}"
-  else
-    api_path="releases/tags/${version}"
-    log "resolving ${binary_name} ${version} for ${filter}"
-  fi
-
-  { read -r asset_url; read -r digest; } < <(
-    curl -fsSL "https://api.github.com/repos/${repo}/${api_path}" \
-      | python3 -c '
-import json, sys
-target = sys.argv[1]
-data = json.load(sys.stdin)
-for asset in data.get("assets", []):
-    name = asset["name"]
-    if target in name and (name.endswith(".tar.gz") or name.endswith(".tar.xz")):
-        print(asset["browser_download_url"])
-        print(asset.get("digest", ""))
-        break
-' "$filter"
-  )
-
-  [ -n "$asset_url" ] || err "no ${binary_name} release asset matching '${filter}' for ${version}. Releases: https://github.com/${repo}/releases"
-  [ -n "$digest" ] || err "no digest published for ${binary_name} asset; refusing to install unverified binary"
-
-  expected_sha256="${digest#sha256:}"
-  [ "$digest" != "$expected_sha256" ] || err "unexpected digest format from GitHub API: $digest"
-
-  case "$asset_url" in
-    *.tar.gz) archive_ext=".tar.gz" ;;
-    *.tar.xz) archive_ext=".tar.xz" ;;
-    *)        err "unsupported archive type for ${binary_name}: ${asset_url}" ;;
-  esac
-
-  tmpdir="$(mktemp -d)"
-  archive_path="${tmpdir}/archive${archive_ext}"
-
-  log "downloading $asset_url"
-  curl -fsSL -o "${archive_path}" "$asset_url"
-
-  actual_sha256="$(sha256_of "${archive_path}")"
-  if [ "$actual_sha256" != "$expected_sha256" ]; then
-    rm -rf "$tmpdir"
-    err "sha256 mismatch: expected ${expected_sha256}, got ${actual_sha256}"
-  fi
-  log "sha256 verified"
-
-  tar -xf "${archive_path}" -C "$tmpdir"
-
-  binary="$(find "$tmpdir" -type f -name "$binary_name" -perm -u+x | head -1)"
-  if [ -z "$binary" ]; then
-    rm -rf "$tmpdir"
-    err "${binary_name} binary not found in archive"
-  fi
-
-  install -m 0755 "$binary" "${bindir}/${binary_name}"
-  rm -rf "$tmpdir"
-  log "installed ${binary_name} to ${bindir}/${binary_name}"
-
-  case ":$PATH:" in
-    *":$bindir:"*) : ;;
-    *) log "note: add $bindir to PATH to use ${binary_name}" ;;
-  esac
-}
-
 main() {
   cd "$REPO_ROOT"
 
-  local os
-  os="$(detect_os)"
-
-  case "$os" in
-    macos)
-      install_brew_pkg lefthook
-      install_brew_pkg actionlint
-      install_brew_pkg gitleaks
-      install_brew_pkg shellcheck
-      ;;
-    linux)
-      install_linux_lefthook
-      install_linux_actionlint
-      install_linux_gitleaks
-      install_linux_shellcheck
-      ;;
-  esac
-
+  install_lefthook
+  install_actionlint
+  install_gitleaks
+  install_shellcheck
   install_mado
   install_committed
   install_check_jsonschema
