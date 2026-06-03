@@ -32,7 +32,6 @@ install_brew_pkg() {
 }
 
 readonly ACTIONLINT_VERSION="v1.7.12"
-readonly CHECK_JSONSCHEMA_VERSION="0.37.2"
 readonly COMMITTED_VERSION="v1.1.11"
 readonly GITLEAKS_VERSION="v8.30.1"
 readonly LEFTHOOK_VERSION="v2.1.9"
@@ -99,22 +98,11 @@ install_check_jsonschema() {
     log "check-jsonschema already installed"
     return
   fi
-  if [ "$(uname -s)" = "Darwin" ] && have brew; then
-    log "installing check-jsonschema via Homebrew"
-    brew install check-jsonschema
-    return
+  if ! have brew; then
+    err "check-jsonschema not found and Homebrew unavailable. Install Homebrew (https://brew.sh) and re-run, or install check-jsonschema yourself."
   fi
-  if have pipx; then
-    log "installing check-jsonschema ${CHECK_JSONSCHEMA_VERSION} via pipx"
-    pipx install "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}"
-    return
-  fi
-  if have pip3; then
-    log "installing check-jsonschema ${CHECK_JSONSCHEMA_VERSION} via pip3 --user"
-    pip3 install --user "check-jsonschema==${CHECK_JSONSCHEMA_VERSION}"
-    return
-  fi
-  err "check-jsonschema not found. Install pipx (recommended) or pip3, then re-run."
+  log "installing check-jsonschema via Homebrew"
+  brew install check-jsonschema
 }
 
 install_mado() {
