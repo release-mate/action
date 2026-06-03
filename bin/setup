@@ -31,7 +31,7 @@ install_brew_pkg() {
   brew install "$pkg"
 }
 
-readonly ACTIONLINT_VERSION="1.7.12"
+readonly ACTIONLINT_VERSION="v1.7.12"
 readonly CHECK_JSONSCHEMA_VERSION="0.37.2"
 readonly COMMITTED_VERSION="v1.1.11"
 readonly GITLEAKS_VERSION="v8.30.1"
@@ -57,19 +57,13 @@ install_linux_actionlint() {
     log "actionlint already installed"
     return
   fi
-  local bindir="${HOME}/.local/bin"
-  mkdir -p "$bindir"
-  log "installing actionlint to $bindir"
-  local script
-  script="$(mktemp)"
-  curl -fsSL -o "$script" \
-    https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash
-  bash "$script" "${ACTIONLINT_VERSION}" "$bindir"
-  rm -f "$script"
-  case ":$PATH:" in
-    *":$bindir:"*) : ;;
-    *) log "note: add $bindir to PATH to use actionlint" ;;
+  local arch
+  case "$(uname -m)" in
+    x86_64|amd64)  arch="amd64" ;;
+    arm64|aarch64) arch="arm64" ;;
+    *)             err "unsupported arch for actionlint binary: $(uname -m)" ;;
   esac
+  install_github_release_binary rhysd/actionlint actionlint "linux_${arch}" "${ACTIONLINT_VERSION}"
 }
 
 install_linux_gitleaks() {
