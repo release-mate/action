@@ -194,53 +194,70 @@ sha256_of() {
   fi
 }
 
-# Install a binary from the latest GitHub release of $1 (owner/name).
+# Install a binary from a GitHub release of $1 (owner/name).
 # $2 is the binary name (also used to locate it inside the archive).
-# $3 is a substring filter matched against `.tar.gz` asset names.
+# $3 is a substring filter matched against `.tar.gz`/`.tar.xz` asset names.
+# $4 is the release tag to pin (e.g. "v1.2.3"); defaults to "latest".
 # Verifies SHA256 against the API-published asset digest before installing.
 install_github_release_binary() {
-  local repo="$1" binary_name="$2" filter="$3"
+  local repo="$1" binary_name="$2" filter="$3" version="${4:-latest}"
   local bindir tmpdir asset_url digest expected_sha256 actual_sha256 binary
+  local api_path archive_ext archive_path
 
   have python3 || err "python3 required to verify ${binary_name} download. Install python3, or grab a binary from https://github.com/${repo}/releases"
 
   bindir="${HOME}/.local/bin"
   mkdir -p "$bindir"
 
-  log "resolving ${binary_name} release for ${filter}"
+  if [ "$version" = "latest" ]; then
+    api_path="releases/latest"
+    log "resolving ${binary_name} latest release for ${filter}"
+  else
+    api_path="releases/tags/${version}"
+    log "resolving ${binary_name} ${version} for ${filter}"
+  fi
+
   { read -r asset_url; read -r digest; } < <(
-    curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" \
+    curl -fsSL "https://api.github.com/repos/${repo}/${api_path}" \
       | python3 -c '
 import json, sys
 target = sys.argv[1]
 data = json.load(sys.stdin)
 for asset in data.get("assets", []):
-    if target in asset["name"] and asset["name"].endswith(".tar.gz"):
+    name = asset["name"]
+    if target in name and (name.endswith(".tar.gz") or name.endswith(".tar.xz")):
         print(asset["browser_download_url"])
         print(asset.get("digest", ""))
         break
 ' "$filter"
   )
 
-  [ -n "$asset_url" ] || err "no ${binary_name} release asset matching '${filter}'. Releases: https://github.com/${repo}/releases"
+  [ -n "$asset_url" ] || err "no ${binary_name} release asset matching '${filter}' for ${version}. Releases: https://github.com/${repo}/releases"
   [ -n "$digest" ] || err "no digest published for ${binary_name} asset; refusing to install unverified binary"
 
   expected_sha256="${digest#sha256:}"
   [ "$digest" != "$expected_sha256" ] || err "unexpected digest format from GitHub API: $digest"
 
+  case "$asset_url" in
+    *.tar.gz) archive_ext=".tar.gz" ;;
+    *.tar.xz) archive_ext=".tar.xz" ;;
+    *)        err "unsupported archive type for ${binary_name}: ${asset_url}" ;;
+  esac
+
   tmpdir="$(mktemp -d)"
+  archive_path="${tmpdir}/archive${archive_ext}"
 
   log "downloading $asset_url"
-  curl -fsSL -o "${tmpdir}/archive.tar.gz" "$asset_url"
+  curl -fsSL -o "${archive_path}" "$asset_url"
 
-  actual_sha256="$(sha256_of "${tmpdir}/archive.tar.gz")"
+  actual_sha256="$(sha256_of "${archive_path}")"
   if [ "$actual_sha256" != "$expected_sha256" ]; then
     rm -rf "$tmpdir"
     err "sha256 mismatch: expected ${expected_sha256}, got ${actual_sha256}"
   fi
   log "sha256 verified"
 
-  tar -xzf "${tmpdir}/archive.tar.gz" -C "$tmpdir"
+  tar -xf "${archive_path}" -C "$tmpdir"
 
   binary="$(find "$tmpdir" -type f -name "$binary_name" -perm -u+x | head -1)"
   if [ -z "$binary" ]; then
