@@ -1,6 +1,37 @@
 #!/usr/bin/env bash
 # bin/setup — install developer tooling for release-mate.
 # Idempotent: re-running skips tools already on PATH.
+#
+# Trust model
+# -----------
+# Every binary this script installs is fetched from a pinned upstream
+# GitHub release and validated before it is extracted or executed:
+#
+#   1. Version is pinned by a `*_VERSION` constant below.
+#   2. The exact release asset is downloaded via curl to a temp file —
+#      never piped to a shell.
+#   3. The downloaded bytes are SHA256-checked against an entry in
+#      `bin/setup.shasums`, the in-repo manifest. The manifest is the
+#      single source of truth for integrity; upstream's release page,
+#      the GitHub API `digest` field, and any sidecar `.sha256` files
+#      are not consulted at install time.
+#   4. If `cosign` is on PATH and upstream publishes a Sigstore bundle
+#      or detached signature for the asset, `cosign verify-blob`
+#      additionally checks that the artifact was produced by a workflow
+#      in the same `owner/repo` via GitHub Actions OIDC. Absent
+#      signatures skip this step (sha256 still gates installation).
+#   5. Only then is the archive extracted and the binary copied to
+#      `~/.local/bin`.
+#
+# The only exception is `check-jsonschema`, which has no platform
+# binary release and is installed via Homebrew. Bumping a `*_VERSION`
+# constant requires regenerating the matching rows in
+# `bin/setup.shasums`.
+#
+# Static analyzers occasionally flag the curl + extract pattern as
+# "download then run / not pinned by hash" — the pinning happens at
+# step 3 above before any bytes from the downloaded archive are
+# extracted or executed.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
