@@ -63,7 +63,7 @@ on:
 
 jobs:
   release:
-    uses: release-mate/action/.github/workflows/release-please.yml@v1.1.1
+    uses: release-mate/action/.github/workflows/release-please.yml@v1.2.0
     secrets:
       client-id: ${{ secrets.RELEASE_MATE_CLIENT_ID }}
       app-private-key: ${{ secrets.RELEASE_MATE_PRIVATE_KEY }}
@@ -80,7 +80,7 @@ there instead:
 ```yaml
 jobs:
   release:
-    uses: your-org/release-tooling/.github/workflows/release-please.yml@v1.1.1
+    uses: your-org/release-tooling/.github/workflows/release-please.yml@v1.2.0
     secrets:
       client-id: ${{ secrets.RELEASE_MATE_CLIENT_ID }}
       app-private-key: ${{ secrets.RELEASE_MATE_PRIVATE_KEY }}
@@ -114,7 +114,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions: {}
     steps:
-      - uses: release-mate/action@v1.1.1
+      - uses: release-mate/action@v1.2.0
         with:
           client-id: ${{ secrets.RELEASE_MATE_CLIENT_ID }}
           app-private-key: ${{ secrets.RELEASE_MATE_PRIVATE_KEY }}
