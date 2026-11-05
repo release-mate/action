@@ -1,5 +1,5 @@
 [lint]
-respect-gitignore = true
+respect-gitignore = "repository-only"
 output-format = "concise"
 exclude = ["./CHANGELOG.md"]
 rules = [
